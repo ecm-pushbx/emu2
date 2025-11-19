@@ -60,9 +60,11 @@ set_task_free(UINT16 selector)
 	if (h & CPU_TSS_H_BUSY) {
 		h &= ~CPU_TSS_H_BUSY;
 		cpu_kmemorywrite_d(addr + 4, h);
+#if 0
 	} else {
 		ia32_panic("set_task_free: already free(%04x:%08x)",
 		    selector, h);
+#endif
 	}
 }
 
@@ -249,42 +251,6 @@ task_switch(selector_t *task_sel, task_switch_type_t type)
 	}
 #endif
 
-	/* load task state */
-	if (!task16) {
-		if (CPU_STAT_PAGING) {
-			cr3 = cpu_memoryread_d(task_paddr + 28);
-		}
-		eip = cpu_memoryread_d(task_paddr + 32);
-		new_flags = cpu_memoryread_d(task_paddr + 36);
-		for (i = 0; i < CPU_REG_NUM; i++) {
-			regs[i] = cpu_memoryread_d(task_paddr + 40 + i * 4);
-		}
-		for (i = 0; i < CPU_SEGREG_NUM; i++) {
-			sreg[i] = cpu_memoryread_w(task_paddr + 72 + i * 4);
-		}
-		ldtr = cpu_memoryread_w(task_paddr + 96);
-		t = cpu_memoryread_w(task_paddr + 100);
-		if (t & 1) {
-			CPU_STAT_BP_EVENT |= CPU_STAT_BP_EVENT_TASK;
-		}
-		iobase = cpu_memoryread_w(task_paddr + 102);
-	} else {
-		eip = cpu_memoryread_w(task_paddr + 14);
-		new_flags = cpu_memoryread_w(task_paddr + 16);
-		for (i = 0; i < CPU_REG_NUM; i++) {
-			regs[i] = cpu_memoryread_w(task_paddr + 18 + i * 2);
-		}
-		for (i = 0; i < CPU_SEGREG286_NUM; i++) {
-			sreg[i] = cpu_memoryread_w(task_paddr + 34 + i * 2);
-		}
-		for (; i < CPU_SEGREG_NUM; i++) {
-			sreg[i] = 0;
-		}
-		ldtr = cpu_memoryread_w(task_paddr + 42);
-		iobase = 0;
-		t = 0;
-	}
-
 #if defined(DEBUG)
 	VERBOSE(("task_switch: current task"));
 	if (!task16) {
@@ -301,24 +267,6 @@ task_switch(selector_t *task_sel, task_switch_type_t type)
 		    CPU_REGS_SREG(i)));
 	}
 	VERBOSE(("task_switch: ldtr    = 0x%04x", CPU_LDTR));
-
-	VERBOSE(("task_switch: new task"));
-	if (!task16) {
-		VERBOSE(("task_switch: CR3     = 0x%08x", cr3));
-	}
-	VERBOSE(("task_switch: eip     = 0x%08x", eip));
-	VERBOSE(("task_switch: eflags  = 0x%08x", new_flags));
-	for (i = 0; i < CPU_REG_NUM; i++) {
-		VERBOSE(("task_switch: %s = 0x%08x", reg32_str[i], regs[i]));
-	}
-	for (i = 0; i < CPU_SEGREG_NUM; i++) {
-		VERBOSE(("task_switch: %s = 0x%04x", sreg_str[i], sreg[i]));
-	}
-	VERBOSE(("task_switch: ldtr    = 0x%04x", ldtr));
-	if (!task16) {
-		VERBOSE(("task_switch: t       = 0x%04x", t));
-		VERBOSE(("task_switch: iobase  = 0x%04x", iobase));
-	}
 #endif
 
 	/* if IRET or JMP, clear busy flag in this task: need */
@@ -337,7 +285,7 @@ task_switch(selector_t *task_sel, task_switch_type_t type)
 	case TASK_SWITCH_INTR:
 		/* Nothing to do */
 		break;
-	
+
 	default:
 		ia32_panic("task_switch: task switch type is invalid");
 		break;
@@ -395,6 +343,60 @@ task_switch(selector_t *task_sel, task_switch_type_t type)
 #endif
 
 	/* Now task switching! */
+	/* load task state */
+	if (!task16) {
+		if (CPU_STAT_PAGING) {
+			cr3 = cpu_memoryread_d(task_paddr + 28);
+		}
+		eip = cpu_memoryread_d(task_paddr + 32);
+		new_flags = cpu_memoryread_d(task_paddr + 36);
+		for (i = 0; i < CPU_REG_NUM; i++) {
+			regs[i] = cpu_memoryread_d(task_paddr + 40 + i * 4);
+		}
+		for (i = 0; i < CPU_SEGREG_NUM; i++) {
+			sreg[i] = cpu_memoryread_w(task_paddr + 72 + i * 4);
+		}
+		ldtr = cpu_memoryread_w(task_paddr + 96);
+		t = cpu_memoryread_w(task_paddr + 100);
+		if (t & 1) {
+			CPU_STAT_BP_EVENT |= CPU_STAT_BP_EVENT_TASK;
+		}
+		iobase = cpu_memoryread_w(task_paddr + 102);
+	} else {
+		eip = cpu_memoryread_w(task_paddr + 14);
+		new_flags = cpu_memoryread_w(task_paddr + 16);
+		for (i = 0; i < CPU_REG_NUM; i++) {
+			regs[i] = cpu_memoryread_w(task_paddr + 18 + i * 2);
+		}
+		for (i = 0; i < CPU_SEGREG286_NUM; i++) {
+			sreg[i] = cpu_memoryread_w(task_paddr + 34 + i * 2);
+		}
+		for (; i < CPU_SEGREG_NUM; i++) {
+			sreg[i] = 0;
+		}
+		ldtr = cpu_memoryread_w(task_paddr + 42);
+		iobase = 0;
+		t = 0;
+	}
+#if defined(DEBUG)
+	VERBOSE(("task_switch: new task"));
+	if (!task16) {
+		VERBOSE(("task_switch: CR3     = 0x%08x", cr3));
+	}
+	VERBOSE(("task_switch: eip     = 0x%08x", eip));
+	VERBOSE(("task_switch: eflags  = 0x%08x", new_flags));
+	for (i = 0; i < CPU_REG_NUM; i++) {
+		VERBOSE(("task_switch: %s = 0x%08x", reg32_str[i], regs[i]));
+	}
+	for (i = 0; i < CPU_SEGREG_NUM; i++) {
+		VERBOSE(("task_switch: %s = 0x%04x", sreg_str[i], sreg[i]));
+	}
+	VERBOSE(("task_switch: ldtr    = 0x%04x", ldtr));
+	if (!task16) {
+		VERBOSE(("task_switch: t       = 0x%04x", t));
+		VERBOSE(("task_switch: iobase  = 0x%04x", iobase));
+	}
+#endif
 
 	/* if CALL, INTR, set EFLAGS image NT_FLAG */
 	/* if CALL, INTR, JMP set busy flag */
