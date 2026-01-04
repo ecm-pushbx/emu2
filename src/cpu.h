@@ -14,7 +14,9 @@
 // This is used by some software to detect extra instructions that are present
 // in the 80186 also, so we emulate this even if no 80286 instructions are
 // supported.
-#define CPU_PUSH_80286
+// #define CPU_PUSH_80286
+// ecm: Better to present as an 186+HMA+XMS instead of a 286 that
+//  faults on any 0Fh-prefixed instruction. So disable this.
 
 // Enable 80186 shift behaviour - shift count is modulo 32.
 // This is used in some software to detect 80186 and higher.
