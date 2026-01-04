@@ -51,7 +51,34 @@ enum
 
 #define CompressFlags()                                                                  \
     (uint16_t)(CF | 2 | (PF << 2) | (!(!AF) << 4) | (ZF << 6) | (!(!SF) << 7) |          \
-               (TF << 8) | (IF << 9) | (DF << 10) | (!(!OF) << 11))
+               (TF << 8) | (IF << 9) | (DF << 10) | (!(!OF) << 11) | \
+               0xF000)
+/* 80286 detection checks flags like so.
+It expects the top 4 bits be forced set for 8086/186, after writing zeroes:
+
+		xor ax,ax
+		push ax
+		popf	; try to clear all bits
+		pushf
+	        pop ax
+	and ax,0f000h
+	cmp ax,0f000h
+	jnz is286		; 4 msb stuck to 1: 808x or 80186
+
+80386 detection checks that the top 4 bits are not all forced clear:
+
+		mov ax,0f000h
+		push ax
+		popf	; try to set 4 msb
+		pushf
+		pop ax
+	test ax,0f000h
+	jz noid		; 4 msb stuck to 0: 80286
+	mov byte [family],3	; at least 386
+
+From https://hg.pushbx.org/ecm/cpulevel/file/43b74982baeb/cpulevel.asm
+
+*/
 
 #define ExpandFlags(f)                                                                   \
     {                                                                                    \
