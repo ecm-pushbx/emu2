@@ -624,14 +624,6 @@ uint32_t xms_entry_point(void)
 
 int init_xms(int maxmem)
 {
-    int new_maxmem = 0x01;
-    while(maxmem)
-    {
-        maxmem >>= 1;
-        new_maxmem <<= 1;
-    }
-    maxmem = new_maxmem >> 1;
-
     xms_entry_addr = get_static_memory(sizeof(xms_entry_stub), 1);
     for(int i = 0; i < sizeof(xms_entry_stub); i++)
         put8(xms_entry_addr + i, xms_entry_stub[i]);

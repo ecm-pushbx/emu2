@@ -580,12 +580,12 @@ int main(int argc, char **argv)
 #ifdef IA32
         if(*ep || memsize < 2 || memsize > 1024)
             print_error("%s must be set between 2 to 1024\n", ENV_MEMSIZE);
+        if((memsize & (memsize - 1)) != 0)
+            print_error("%s must be power of 2\n", ENV_MEMSIZE);
 #else
         if(*ep || memsize < 2 || memsize > 16)
             print_error("%s must be set between 2 to 16\n", ENV_MEMSIZE);
 #endif
-        if((memsize & (memsize - 1)) != 0)
-            print_error("%s must be power of 2\n", ENV_MEMSIZE);
     }
     debug(debug_dos, "set MEMSIZE = %d\n", memsize);
     memory = malloc(memsize * 1024 * 1024);
