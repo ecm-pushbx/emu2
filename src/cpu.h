@@ -49,10 +49,14 @@ enum
 #define SetSFW(x) (SF = (x)&0x8000)
 #define SetSFB(x) (SF = (x)&0x80)
 
+extern uint16_t fl_mask_on;
+extern uint16_t fl_mask_preserve;
+extern uint16_t fl_preserve;
+
 #define CompressFlags()                                                                  \
-    (uint16_t)(CF | 2 | (PF << 2) | (!(!AF) << 4) | (ZF << 6) | (!(!SF) << 7) |          \
+    (uint16_t)(CF | (PF << 2) | (!(!AF) << 4) | (ZF << 6) | (!(!SF) << 7) |          \
                (TF << 8) | (IF << 9) | (DF << 10) | (!(!OF) << 11) | \
-               0xF000)
+               fl_mask_on | (fl_preserve & fl_mask_preserve))
 /* 80286 detection checks flags like so.
 It expects the top 4 bits be forced set for 8086/186, after writing zeroes:
 
@@ -91,4 +95,5 @@ From https://hg.pushbx.org/ecm/cpulevel/file/43b74982baeb/cpulevel.asm
         IF = ((f)&512) == 512;                                                           \
         DF = ((f)&1024) == 1024;                                                         \
         OF = (f)&2048;                                                                   \
+        fl_preserve = (f) & fl_mask_preserve; \
     }

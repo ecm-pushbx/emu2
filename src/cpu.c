@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "env.h"
 #include "cpu.h"
 #include "dbg.h"
 #include "dis.h"
@@ -20,6 +21,11 @@ static unsigned instruction_length;
 // rough, doesn't count modrm, disp, imm
 static unsigned dotrace;
 static unsigned doinglockout;
+unsigned cpuflag;
+
+uint16_t fl_mask_on = 0xF002;
+uint16_t fl_mask_preserve = 0;
+uint16_t fl_preserve = 0;
 
 /* All the byte flags will either be 1 or 0 */
 static int8_t CF, PF, ZF, TF, IF, DF;
@@ -118,16 +124,6 @@ static void PushWord(uint16_t w)
     wregs[SP] -= 2;
     SetMemW(SS, wregs[SP], w);
 }
-
-#ifdef CPU_PUSH_80286
-#define PUSH_SP()                                                              \
-    PushWord(wregs[SP]);                                                       \
-    break;
-#else
-#define PUSH_SP()                                                              \
-    PushWord(wregs[SP] - 2);                                                   \
-    break;
-#endif
 
 static uint16_t PopWord(void)
 {
@@ -257,6 +253,24 @@ void init_cpu(void)
     halting = 0;
 
     segment_override = NoSeg;
+
+    cpuflag = 0;
+    {
+        const char *p = getenv(ENV_CPUFLAG);
+        if(p)
+        {
+            char *ep;
+            cpuflag = strtoul(p, &ep, 0);
+            if(*ep)
+                cpuflag = 0;
+        }
+    }
+    if (cpuflag & 1) {
+        cpuflag &= ~ 2;
+    }
+    if (cpuflag & 2) {
+        fl_mask_on &= ~ 0xF000;
+    }
 }
 
 static uint8_t GetModRMRegB(unsigned ModRM)
@@ -1408,10 +1422,8 @@ static uint8_t shift1_b(uint8_t val, int ModRM)
 
 static uint8_t shifts_b(uint8_t val, int ModRM, unsigned count)
 {
-
-#ifdef CPU_SHIFT_80186
-    count &= 0x1F;
-#endif
+    if ((cpuflag & 1) == 0)
+        count &= 0x1F;
 
     if(!count)
         return val; // No flags affected.
@@ -1563,9 +1575,8 @@ static uint16_t shift1_w(uint16_t val, int ModRM)
 
 static uint16_t shifts_w(uint16_t val, int ModRM, unsigned count)
 {
-#ifdef CPU_SHIFT_80186
-    count &= 0x1F;
-#endif
+    if ((cpuflag & 1) == 0)
+        count &= 0x1F;
 
     if(!count)
         return val; // No flags affected.
@@ -2442,7 +2453,12 @@ static void do_instruction(uint8_t code)
     case 0x51: PUSH_WR(CX);
     case 0x52: PUSH_WR(DX);
     case 0x53: PUSH_WR(BX);
-    case 0x54: PUSH_SP();
+    case 0x54:
+    if (cpuflag & 2)
+        PushWord(wregs[SP]);
+    else
+        PushWord(wregs[SP] - 2);
+    break;
     case 0x55: PUSH_WR(BP);
     case 0x56: PUSH_WR(SI);
     case 0x57: PUSH_WR(DI);
