@@ -163,7 +163,7 @@ void set_a20_enable(int enable)
 {
     a20_enabled = enable;
     if(enable)
-        memory_mask = memory_limit;
+        memory_mask = 0xFFFFffff;
     else
         memory_mask = 0xfffff;
     debug(debug_int, "--A20 mask %08x--\n", memory_mask);
