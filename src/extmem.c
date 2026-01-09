@@ -420,13 +420,47 @@ void xms_farcall(void)
             }
             dst_addr += XMS_EMB_BASE + p->emb_offset * 1024;
         }
-        if(src_addr > dst_addr && src_addr < dst_addr + len)
+/*
+
+The overlap check was the wrong way around. It's likely because
+it was incorrectly stated in the XMS specification.
+
+Refer to https://www.bttr-software.de/forum/forum_entry.php?id=15907
+
+Example:
+
+  src < dst C=8
+  SSSSOOOODDDD
+  12345678
+  ^ copy 1234 to OOOO
+      ^ copy 1234 to DDDD
+
+  src > dst C=8
+  DDDDOOOOSSSS
+      12345678
+      ^ copy 1234 to DDDD
+          ^ copy 5678 to OOOO
+*/
+        if (0 && src_addr < dst_addr && src_addr + len > dst_addr)
         {
             bl = XMM_STATUS_EMB_MOVE_OVERLAP;
             cpuSetAX(0x0000);
             break;
         }
-        memcpy(memory + dst_addr, memory + src_addr, len);
+        if (01)
+            // this always works correctly, even when overlapping.
+            //  the XMS spec doesn't prohibit for us to support
+            //  *all* overlapping cases.
+            memmove(memory + dst_addr, memory + src_addr, len);
+        else if (0)
+            // may or may not work when S < D and S+L > D
+            memcpy(memory + dst_addr, memory + src_addr, len);
+        else
+            // enabling this without the proper check will corrupt
+            //  on S < D && S+L > D
+            for (unsigned ii = 0; ii < len; ++ii) {
+                memory[dst_addr + ii] = memory[src_addr + ii];
+            }
         bl = XMM_STATUS_SUCCESS;
         cpuSetAX(0x0001);
     }
