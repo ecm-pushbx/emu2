@@ -591,7 +591,7 @@ int main(int argc, char **argv)
     memory = malloc(memsize * 1024 * 1024);
     if(!memory)
         print_error("cannot allocate memory %d MB\n", memsize);
-    memset(memory, 0, 1024 * 1024); // clear first 1MB
+    memset(memory, 0, 1088 * 1024); // clear first 1 MiB + 64 KiB
 
     init_cpu();
 
