@@ -17,10 +17,15 @@
 // #define CPU_PUSH_80286
 // ecm: Better to present as an 186+HMA+XMS instead of a 286 that
 //  faults on any 0Fh-prefixed instruction. So disable this.
+// ecm: EMU2_CPUFLAG & 2 now selects detecting as a 286,
+//  both the push and fl_mask_on differences.
 
 // Enable 80186 shift behaviour - shift count is modulo 32.
 // This is used in some software to detect 80186 and higher.
-#define CPU_SHIFT_80186
+// #define CPU_SHIFT_80186
+// ecm: EMU2_CPUFLAG & 1 now selects detecting as an 8086
+//  by disabling the shift count masking. If & 2 is also set
+//  then & 1 takes precedence and overrides & 2.
 
 enum
 {
