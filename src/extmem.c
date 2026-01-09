@@ -94,7 +94,7 @@ static struct emb_data *search_freemem(uint32_t kb_size)
         p = p->next;
     }
 
-    if(res->kb_size > kb_size)
+    if(res && res->kb_size > kb_size)
     {
         struct emb_data *newfree = malloc(sizeof(struct emb_data));
         if(newfree != NULL)
