@@ -461,7 +461,7 @@ static void init_bios_mem(void)
     put8(0xFFFEF, 0xCF); // IRET
 
     // Store an "INT-19h" instruction in address FFFF:0000
-    put8(0xFFFF0, 0xCB);
+    put8(0xFFFF0, 0xCD);
     put8(0xFFFF1, 0x19);
     // BIOS date at F000:FFF5
     put8(0xFFFF5, 0x30);
